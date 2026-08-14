@@ -171,13 +171,10 @@ export function init(rootEl) {
     file:           null,   // File | null
     imageElement:   null,   // HTMLImageElement | null
     selectedFormat: null,   // OutputFormat | null
-    sourceStem:     null,   // string | null  (derived from file.name or URL)
-    resolution: {
-      preset:       'original',
-      customWidth:  null,
-      customHeight: null,
-    },
+    sourceStem:     'image',
+    resolution: { preset: 'original', customWidth: '', customHeight: '' },
     urlInput: '',
+    quality: 92,
   };
 
   // ── Canvas availability check (Requirement 5.8) ───────────────────────────
@@ -222,6 +219,14 @@ export function init(rootEl) {
       <p class="section-title">Output Format</p>
       <div class="format-selector" id="sc-format-selector" role="group" aria-label="Output format"></div>
       <p class="error-msg" id="sc-format-selector-error" hidden></p>
+
+      <!-- Quality control -->
+      <div class="quality-row" id="sc-quality-row" hidden>
+        <span class="control-label">Quality</span>
+        <input type="range" class="quality-slider" id="sc-quality-slider"
+               min="1" max="100" value="92" aria-label="Output quality" />
+        <span class="quality-value" id="sc-quality-value">92%</span>
+      </div>
 
       <hr class="divider" />
 
@@ -272,6 +277,9 @@ export function init(rootEl) {
   const previewImg      = rootEl.querySelector('#sc-preview-img');
   const previewFilename = rootEl.querySelector('#sc-preview-filename');
   const formatSelector  = rootEl.querySelector('#sc-format-selector');
+  const qualityRow      = rootEl.querySelector('#sc-quality-row');
+  const qualitySlider   = rootEl.querySelector('#sc-quality-slider');
+  const qualityValue    = rootEl.querySelector('#sc-quality-value');
   const resolutionSelect= rootEl.querySelector('#sc-resolution-select');
   const customDims      = rootEl.querySelector('#sc-custom-dims');
   const customWidthInput= rootEl.querySelector('#sc-custom-width');
@@ -289,6 +297,11 @@ export function init(rootEl) {
     chip.disabled = true; // disabled until a file is loaded (Req 3.5)
     chip.addEventListener('click', () => handleFormatSelect(fmt));
     formatSelector.appendChild(chip);
+  });
+
+  qualitySlider.addEventListener('input', () => {
+    state.quality = parseInt(qualitySlider.value, 10);
+    qualityValue.textContent = `${state.quality}%`;
   });
 
   // ── Drag and drop ─────────────────────────────────────────────────────────
@@ -442,6 +455,8 @@ export function init(rootEl) {
         chip.classList.add('selected');
       }
     });
+
+    handleFormatSelect(defaultFormat);
   }
 
   function handleFormatSelect(fmt) {
@@ -450,6 +465,13 @@ export function init(rootEl) {
     formatSelector.querySelectorAll('.format-chip').forEach((chip) => {
       chip.classList.toggle('selected', chip.dataset.format === fmt);
     });
+
+    const isLossy = ['jpg', 'webp', 'avif'].includes(fmt);
+    if (isLossy) {
+      qualityRow.removeAttribute('hidden');
+    } else {
+      qualityRow.setAttribute('hidden', '');
+    }
   }
 
   async function handleUrlLoad() {
@@ -586,7 +608,8 @@ export function init(rootEl) {
       }
 
       const mimeType = FORMAT_MIME[format];
-      const quality  = format === 'jpg' ? 0.92 : undefined;
+      const isLossy  = ['jpg', 'webp', 'avif'].includes(format);
+      const quality  = isLossy ? state.quality / 100 : undefined;
       canvas.toBlob(
         (blob) => {
           if (blob) resolve(blob);

@@ -62,8 +62,36 @@ document.addEventListener('DOMContentLoaded', () => {
   initStandardConverter(standardView);
   initGifCreator(gifView);
 
-  // Set the default active tab
-  activateTab('standard');
+  // Set the default active tab (or from URL)
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetTab = urlParams.get('tab') || 'standard';
+  activateTab(targetTab);
+
+  // Auto-load URL if passed via context menu
+  const loadUrl = urlParams.get('url');
+  if (loadUrl) {
+    // Small timeout to allow module DOM to settle
+    setTimeout(() => {
+      if (targetTab === 'standard') {
+        const urlInput = document.getElementById('sc-url-input');
+        const urlBtn = document.getElementById('sc-url-btn');
+        if (urlInput && urlBtn) {
+          urlInput.value = loadUrl;
+          // dispatch input event so state updates
+          urlInput.dispatchEvent(new Event('input'));
+          urlBtn.click();
+        }
+      } else if (targetTab === 'gif') {
+        const urlInput = document.getElementById('gc-url-input');
+        const urlBtn = document.getElementById('gc-url-btn');
+        if (urlInput && urlBtn) {
+          urlInput.value = loadUrl;
+          urlInput.dispatchEvent(new Event('input'));
+          urlBtn.click();
+        }
+      }
+    }, 50);
+  }
 
   // Attach tab-switching click handlers
   document.querySelectorAll('.tab-btn[data-tab]').forEach((btn) => {
