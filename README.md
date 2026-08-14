@@ -1,5 +1,9 @@
 # 🌟 PixelMorph (Image Type Converter & GIF Studio)
 
+<p align="center">
+  <img src="logo.svg" alt="PixelMorph Logo" width="96" />
+</p>
+
 A powerful, privacy-first Google Chrome extension that lets you convert image formats, edit pictures, and create animated GIFs entirely on your device. **Zero servers, zero uploads, 100% private.**
 
 ---
@@ -22,7 +26,7 @@ Since this extension processes everything locally, you can easily install it as 
 
 1. Clone or download this repository to your local machine:
    ```bash
-   git clone https://github.com/yatharthsinghgavel/Image-type-converter.git
+   git clone https://github.com/propagandafromuganda/Image-type-converter.git
    ```
 2. Open Google Chrome and navigate to `chrome://extensions/`.
 3. Enable **"Developer mode"** by toggling the switch in the top right corner.

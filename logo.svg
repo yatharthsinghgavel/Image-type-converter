@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Background with slight gradient -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#312E81" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded App Icon Shape -->
+  <rect width="128" height="128" rx="28" fill="url(#bgGrad)" />
+
+  <!-- Base Image Icon (Mountains and Sun) -->
+  <g transform="translate(24, 28)" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Picture Frame -->
+    <rect x="0" y="0" width="80" height="64" rx="8" />
+    <!-- Mountains -->
+    <path d="M0 48 L24 24 L44 44 L56 32 L80 56" />
+    <!-- Sun -->
+    <circle cx="56" cy="20" r="6" />
+  </g>
+
+  <!-- Conversion/Refresh Arrow Overlay -->
+  <g transform="translate(68, 68)">
+    <!-- White Circle Background for contrast -->
+    <circle cx="20" cy="20" r="24" fill="#FFFFFF" />
+    <!-- Green Refresh/Convert Arrows -->
+    <path d="M12 20a8 8 0 0 1 8-8v-4l6 6-6 6v-4a4 4 0 0 0-4 4 4 4 0 0 0 4 4v4a8 8 0 0 1-8-8z" fill="#10B981" />
+    <path d="M28 20a8 8 0 0 1-8 8v4l-6-6 6-6v4a4 4 0 0 0 4-4 4 4 0 0 0-4-4v-4a8 8 0 0 1 8 8z" fill="#10B981" />
+  </g>
+</svg>
