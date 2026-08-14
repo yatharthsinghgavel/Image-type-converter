@@ -1,17 +1,20 @@
-# 🌟 Image Type Converter & GIF Studio
+# 🌟 PixelMorph (Image Type Converter & GIF Studio)
 
-A powerful, privacy-first Google Chrome extension that lets you convert image formats and create animated GIFs entirely on your device. **Zero servers, zero uploads, 100% private.**
+A powerful, privacy-first Google Chrome extension that lets you convert image formats, edit pictures, and create animated GIFs entirely on your device. **Zero servers, zero uploads, 100% private.**
 
 ---
 
 ## ✨ Features
 
-- **⚡ Instant Format Conversion:** Convert between PNG, JPG, WEBP, AVIF, HEIC, HEIF, and GIF instantly.
-- **🎬 Animated GIF Creator:** Generate custom animated GIFs from static images or directly extract frames from videos (MP4, WEBM).
+- **⚡ Instant Format Conversion:** Convert between PNG, JPG, WEBP, AVIF, HEIC, HEIF, ICO, PDF, and GIF instantly.
+- **📦 Batch Processing:** Convert multiple images at once and download them instantly bundled as a ZIP archive.
+- **🎨 Built-in Image Editor:** Easily crop, rotate (90° left/right), and flip (horizontal/vertical) images before converting.
+- **⚖️ Before & After Comparison:** Real-time visual comparison showing original vs converted file sizes and visual quality differences.
+- **🎚️ Output Quality Slider:** Fine-tune compression levels for lossy formats (JPEG, WEBP, AVIF) with a precise slider.
+- **🖱️ Context Menu Integration:** Right-click any image or video on the web and select "Convert Image" or "Extract to GIF" to instantly load it into the extension.
+- **🎬 Animated GIF Creator:** Generate custom animated GIFs from static images or directly extract frames from videos (MP4, WEBM). Customize frame rates and durations (0.1s to 300s).
+- **🌓 Light & Dark Themes:** Global theme toggle that saves your preference.
 - **🔒 100% Client-Side:** All processing happens securely in your browser using HTML5 Canvas and Web Workers. No data ever leaves your machine.
-- **🌐 URL Loading:** Fetch images directly from the web using URLs to convert or animate them on the fly.
-- **🎛️ Advanced Controls:** Customize GIF frame rates, duration (0.1s to 300s), and output resolution.
-- **🚀 Blazing Fast:** Leverages `gif.js` multi-threaded web workers for rapid GIF encoding.
 
 ## 🛠️ Installation
 
@@ -29,7 +32,7 @@ Since this extension processes everything locally, you can easily install it as 
 
 ## 🧪 Testing
 
-This project features a comprehensive suite of 145 property-based and unit tests using **Vitest** and **fast-check** to ensure robust performance across all edge cases.
+This project features a comprehensive suite of 145 property-based, integration, and unit tests using **Vitest** and **fast-check** to ensure robust performance across all edge cases.
 
 To run the tests locally:
 
@@ -47,6 +50,7 @@ To run the tests locally:
 
 - **Core:** Vanilla JavaScript (ES Modules), HTML5, CSS3
 - **GIF Encoding:** [gif.js](https://github.com/jnordberg/gif.js) (Web Worker based)
+- **ZIP Encoding:** Zero-dependency vanilla JS implementation
 - **Testing:** [Vitest](https://vitest.dev/), jsdom, fast-check, jest-canvas-mock
 
 ## 📜 License
