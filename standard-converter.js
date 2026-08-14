@@ -855,6 +855,113 @@ export function init(rootEl) {
     });
   }
 
+  // ── Editing & Crop Logic ──────────────────────────────────────────────────
+
+  function applyTransform(type, val) {
+    if (type === 'rotation') {
+      state.transforms.rotation = (state.transforms.rotation + val) % 360;
+    } else if (type === 'flipH') {
+      state.transforms.flipH = !state.transforms.flipH;
+    } else if (type === 'flipV') {
+      state.transforms.flipV = !state.transforms.flipV;
+    }
+    renderPreview();
+    triggerComparison();
+  }
+
+  function resetTransforms() {
+    state.transforms = { rotation: 0, flipH: false, flipV: false, crop: null };
+    renderPreview();
+    triggerComparison();
+  }
+
+  let cropState = { dragging: false, startX: 0, startY: 0, x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+
+  function startCrop() {
+    if (state.loadedImages.length !== 1) return;
+    state.cropMode = true;
+    previewList.setAttribute('hidden', '');
+    cropContainer.removeAttribute('hidden');
+    cropImg.src = state.loadedImages[0].img.src;
+    
+    // reset crop box to 80% center
+    cropState = { dragging: false, startX: 0, startY: 0, x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+    updateCropUI();
+  }
+
+  function cancelCrop() {
+    state.cropMode = false;
+    cropContainer.setAttribute('hidden', '');
+    previewList.removeAttribute('hidden');
+  }
+
+  function applyCropSelection() {
+    state.transforms.crop = { x: cropState.x, y: cropState.y, w: cropState.w, h: cropState.h };
+    cancelCrop();
+    triggerComparison();
+  }
+
+  function updateCropUI() {
+    // We compute pixel values based on the cropImg rendered size
+    const rect = cropImg.getBoundingClientRect();
+    if (rect.width === 0) return; // not rendered yet
+    
+    const bx = cropState.x * rect.width;
+    const by = cropState.y * rect.height;
+    const bw = cropState.w * rect.width;
+    const bh = cropState.h * rect.height;
+
+    cropBox.style.left = `${bx}px`;
+    cropBox.style.top = `${by}px`;
+    cropBox.style.width = `${bw}px`;
+    cropBox.style.height = `${bh}px`;
+
+    overlays.top.style.height = `${by}px`;
+    overlays.bottom.style.top = `${by + bh}px`;
+    overlays.bottom.style.height = `${rect.height - (by + bh)}px`;
+    
+    overlays.left.style.top = `${by}px`;
+    overlays.left.style.height = `${bh}px`;
+    overlays.left.style.width = `${bx}px`;
+    
+    overlays.right.style.top = `${by}px`;
+    overlays.right.style.height = `${bh}px`;
+    overlays.right.style.left = `${bx + bw}px`;
+    overlays.right.style.width = `${rect.width - (bx + bw)}px`;
+  }
+
+  // Simple drag-to-draw-crop-box implementation
+  cropContainer.addEventListener('mousedown', (e) => {
+    if (e.target.id === 'sc-crop-apply' || e.target.id === 'sc-crop-cancel') return;
+    cropState.dragging = true;
+    const rect = cropImg.getBoundingClientRect();
+    cropState.startX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    cropState.startY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    cropState.x = cropState.startX;
+    cropState.y = cropState.startY;
+    cropState.w = 0;
+    cropState.h = 0;
+    updateCropUI();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!cropState.dragging || !state.cropMode) return;
+    const rect = cropImg.getBoundingClientRect();
+    const curX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const curY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    
+    cropState.x = Math.min(cropState.startX, curX);
+    cropState.y = Math.min(cropState.startY, curY);
+    cropState.w = Math.abs(curX - cropState.startX);
+    cropState.h = Math.abs(curY - cropState.startY);
+    
+    updateCropUI();
+  });
+
+  window.addEventListener('mouseup', () => {
+    cropState.dragging = false;
+  });
+
   // ── Binary Builders (ICO & PDF) ─────────────────────────────────────────
 
   async function generateIco(pngBlob) {
