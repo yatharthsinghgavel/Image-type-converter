@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Type Converter</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <nav class="tab-bar" role="tablist" aria-label="Converter tabs">
+    <button
+      class="tab-btn active"
+      role="tab"
+      data-tab="standard"
+      aria-selected="true"
+      aria-controls="standard-view"
+      id="tab-standard"
+    >
+      Standard Converter
+    </button>
+    <button
+      class="tab-btn"
+      role="tab"
+      data-tab="gif"
+      aria-selected="false"
+      aria-controls="gif-view"
+      id="tab-gif"
+    >
+      Advanced GIF Creator
+    </button>
+  </nav>
+
+  <main>
+    <section id="standard-view" role="tabpanel" aria-labelledby="tab-standard">
+      <!-- Standard Converter UI is rendered by standard-converter.js -->
+    </section>
+
+    <section id="gif-view" role="tabpanel" aria-labelledby="tab-gif" hidden>
+      <!-- GIF Creator UI is rendered by gif-creator.js -->
+    </section>
+  </main>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

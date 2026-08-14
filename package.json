@@ -1,0 +1,16 @@
+{
+  "name": "image-type-converter-extension",
+  "version": "1.0.0",
+  "description": "Chrome Manifest V3 extension for client-side image format conversion and animated GIF creation.",
+  "private": true,
+  "scripts": {
+    "test": "vitest --run"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "2.1.8",
+    "fast-check": "3.22.0",
+    "jest-canvas-mock": "2.5.2",
+    "jsdom": "25.0.1",
+    "vitest": "2.1.8"
+  }
+}

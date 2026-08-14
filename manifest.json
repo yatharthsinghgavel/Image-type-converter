@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Image Type Converter",
+  "version": "1.0.0",
+  "description": "Client-side image format conversion and animated GIF creation — no server, no data leaves your device.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Image Type Converter"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

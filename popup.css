@@ -1,0 +1,573 @@
+/**
+ * popup.css — All visual styles for the Image Type Converter extension popup.
+ *
+ * Covers:
+ *  - Tab bar layout and active/inactive states (task 4.1)
+ *  - Standard Converter and GIF Creator view layouts (task 4.2)
+ *  - Drop zone, format chips, FPS selector, resolution selector styles (task 4.2)
+ *  - Error message styles (.error-msg) (task 4.2)
+ *  - Loading spinner / button-disabled states (task 4.2)
+ */
+
+/* =========================================================
+   BASE RESET & BODY
+   Requirements: 1.1 (popup dimensions)
+   ========================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  width: 520px;
+  min-height: 400px;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   TAB BAR
+   Requirements: 1.1 (sticky, always visible), 1.5 (active state visually distinct)
+   ========================================================= */
+
+.tab-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  background: #16213e;
+  border-bottom: 2px solid #0f3460;
+}
+
+/* Base tab button */
+.tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 3px solid transparent; /* reserve space to avoid layout shift on activation */
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  color: #a0a0b0;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid #e94560;
+  outline-offset: -2px;
+}
+
+/* Active tab — differs from inactive on: color, border-bottom, font-weight, and background */
+/* Satisfies Requirement 1.5: "visually indicate the currently active tab … on at least one observable property" */
+.tab-btn.active {
+  color: #e94560;
+  border-bottom: 3px solid #e94560;
+  font-weight: 700;
+  background: rgba(233, 69, 96, 0.08);
+}
+
+/* Hover state for inactive tabs */
+.tab-btn:hover:not(.active) {
+  color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* =========================================================
+   MAIN CONTENT AREA
+   ========================================================= */
+
+main {
+  padding: 16px;
+}
+
+/* =========================================================
+   SHARED SECTION LAYOUT
+   ========================================================= */
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a0a0b0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px 0;
+}
+
+/* =========================================================
+   DROP ZONE
+   Requirements: 2.1, 2.3 — drag-over visual highlight
+   ========================================================= */
+
+.drop-zone {
+  border: 2px dashed #0f3460;
+  border-radius: 8px;
+  padding: 28px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  background: rgba(15, 52, 96, 0.15);
+  margin-bottom: 12px;
+}
+
+.drop-zone:hover {
+  border-color: #e94560;
+  background: rgba(233, 69, 96, 0.05);
+}
+
+/* Requirement 2.3: visually distinct border/background change on drag-over */
+.drop-zone.drag-over {
+  border-color: #e94560;
+  background: rgba(233, 69, 96, 0.12);
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+}
+
+.drop-zone-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.6;
+}
+
+.drop-zone-text {
+  font-size: 14px;
+  color: #a0a0b0;
+  margin: 0 0 4px 0;
+}
+
+.drop-zone-sub {
+  font-size: 12px;
+  color: #606080;
+  margin: 0;
+}
+
+/* =========================================================
+   FILE UPLOAD BUTTON & URL INPUT ROW
+   ========================================================= */
+
+.upload-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #0f3460;
+  color: #e0e0e0;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #1a4a80;
+}
+
+.btn-primary {
+  background: #e94560;
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #c73652;
+}
+
+.url-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #0f3460;
+  background: #16213e;
+  color: #e0e0e0;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.url-input:focus {
+  border-color: #e94560;
+}
+
+.url-input::placeholder {
+  color: #505070;
+}
+
+/* =========================================================
+   IMAGE PREVIEW
+   ========================================================= */
+
+.preview-container {
+  display: none;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.preview-container.visible {
+  display: block;
+}
+
+.preview-img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 6px;
+  border: 1px solid #0f3460;
+  object-fit: contain;
+  background: #0d1117;
+}
+
+.preview-filename {
+  font-size: 12px;
+  color: #606080;
+  margin: 4px 0 0 0;
+  word-break: break-all;
+}
+
+/* =========================================================
+   FORMAT SELECTOR CHIPS
+   Requirements: 3.1, 3.3, 3.5 — interactive chips, selected state, disabled state
+   ========================================================= */
+
+.format-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.format-chip {
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1.5px solid #0f3460;
+  background: transparent;
+  color: #a0a0b0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.format-chip:hover:not(:disabled):not(.selected) {
+  border-color: #e94560;
+  color: #e0e0e0;
+}
+
+/* Requirement 3.3: visually distinct selected state */
+.format-chip.selected {
+  border-color: #e94560;
+  background: rgba(233, 69, 96, 0.15);
+  color: #e94560;
+  font-weight: 600;
+}
+
+/* Requirement 3.5: disabled state when no file loaded */
+.format-chip:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: #0f3460;
+  color: #606080;
+}
+
+/* =========================================================
+   RESOLUTION SELECTOR
+   Requirements: 4.1, 4.4 — custom width/height inputs
+   ========================================================= */
+
+.resolution-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.resolution-label {
+  font-size: 13px;
+  color: #a0a0b0;
+  white-space: nowrap;
+}
+
+.resolution-select {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #0f3460;
+  background: #16213e;
+  color: #e0e0e0;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.resolution-select:focus {
+  border-color: #e94560;
+}
+
+.custom-dims {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.custom-dims.visible {
+  display: flex;
+}
+
+.dim-input {
+  width: 70px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  border: 1px solid #0f3460;
+  background: #16213e;
+  color: #e0e0e0;
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.dim-input:focus {
+  border-color: #e94560;
+}
+
+.dim-separator {
+  color: #606080;
+  font-size: 13px;
+}
+
+/* =========================================================
+   CONVERT / GENERATE BUTTON ROW
+   ========================================================= */
+
+.action-row {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-action {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  background: #e94560;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-action:hover:not(:disabled) {
+  background: #c73652;
+}
+
+.btn-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   LOADING SPINNER
+   Requirements: 5.7, 10.7, 2.14, 14.5 — loading indicator during operations
+   ========================================================= */
+
+.spinner {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.spinner.visible {
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Small inline spinner for URL/upload buttons */
+.spinner-sm {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+
+/* =========================================================
+   ERROR MESSAGES
+   Requirements: 13.1 — within 8px of control, hidden by default
+   ========================================================= */
+
+.error-msg {
+  display: block;
+  color: #e94560;
+  font-size: 12px;
+  margin: 4px 0 0 0;  /* within 8px of the control above */
+  padding: 0;
+  line-height: 1.4;
+}
+
+.error-msg[hidden] {
+  display: none;
+}
+
+/* =========================================================
+   GIF CREATOR — FRAME LIST
+   ========================================================= */
+
+.frame-list {
+  list-style: none;
+  margin: 0 0 12px 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.frame-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 64px;
+}
+
+.frame-thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #0f3460;
+  background: #0d1117;
+}
+
+.frame-index {
+  font-size: 11px;
+  color: #606080;
+}
+
+.frame-count {
+  font-size: 12px;
+  color: #a0a0b0;
+  margin: 0 0 8px 0;
+}
+
+/* =========================================================
+   GIF CREATOR — DURATION / FPS CONTROLS
+   ========================================================= */
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.control-label {
+  font-size: 13px;
+  color: #a0a0b0;
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+/* Duration/FPS preset pill buttons — same chip pattern as format chips */
+.preset-btn {
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1.5px solid #0f3460;
+  background: transparent;
+  color: #a0a0b0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.preset-btn:hover:not(.selected) {
+  border-color: #e94560;
+  color: #e0e0e0;
+}
+
+/* Requirement 9.4: visually distinguish active FPS/duration selection */
+.preset-btn.selected {
+  border-color: #e94560;
+  background: rgba(233, 69, 96, 0.15);
+  color: #e94560;
+  font-weight: 600;
+}
+
+.custom-duration-input {
+  width: 80px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #0f3460;
+  background: #16213e;
+  color: #e0e0e0;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.custom-duration-input:focus {
+  border-color: #e94560;
+}
+
+/* =========================================================
+   DIVIDER
+   ========================================================= */
+
+.divider {
+  border: none;
+  border-top: 1px solid #0f3460;
+  margin: 14px 0;
+}
+
+/* =========================================================
+   PROGRESS BAR (GIF generation)
+   ========================================================= */
+
+.progress-wrap {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #a0a0b0;
+}
+
+.progress-wrap.visible {
+  display: flex;
+}
