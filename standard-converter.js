@@ -30,6 +30,7 @@ import {
   ERR_FETCH_FAILED,
   ERR_FETCH_SIZE,
 } from './utils.js';
+import { ZipBuilder } from './zip-builder.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -61,7 +62,7 @@ const MIME_TO_FORMAT = {
 };
 
 /** Output formats available as chips */
-export const OUTPUT_FORMATS = ['png', 'jpg', 'webp', 'bmp', 'ico', 'gif', 'avif'];
+export const OUTPUT_FORMATS = ['png', 'jpg', 'webp', 'bmp', 'ico', 'gif', 'avif', 'pdf'];
 
 /** Map from chip format key to MIME type */
 export const FORMAT_MIME = {
@@ -72,6 +73,7 @@ export const FORMAT_MIME = {
   ico:  'image/x-icon',
   gif:  'image/gif',
   avif: 'image/avif',
+  pdf:  'application/pdf',
 };
 
 /** Resolution presets: null means "use source dimensions" */
@@ -168,13 +170,20 @@ export function extractStem(filename) {
 export function init(rootEl) {
   // ── State ──────────────────────────────────────────────────────────────────
   const state = {
-    file:           null,   // File | null
-    imageElement:   null,   // HTMLImageElement | null
+    loadedImages:   [],     // Array of { file, img, stem }
     selectedFormat: null,   // OutputFormat | null
-    sourceStem:     'image',
     resolution: { preset: 'original', customWidth: '', customHeight: '' },
     urlInput: '',
     quality: 92,
+    debounceTimer: null,
+    previewUrl: null,
+    transforms: {
+      rotation: 0,
+      flipH: false,
+      flipV: false,
+      crop: null, // {x, y, w, h} normalized [0-1]
+    },
+    cropMode: false,
   };
 
   // ── Canvas availability check (Requirement 5.8) ───────────────────────────
@@ -194,8 +203,8 @@ export function init(rootEl) {
 
       <!-- File picker -->
       <div class="upload-row">
-        <button class="btn btn-secondary" id="sc-pick-btn" type="button">📂 Choose File</button>
-        <input type="file" id="sc-file-input" hidden
+        <button class="btn btn-secondary" id="sc-pick-btn" type="button">📂 Choose Files</button>
+        <input type="file" id="sc-file-input" hidden multiple
                accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,image/svg+xml,image/x-icon,image/avif,image/gif,image/heic" />
         <span style="color:#606080;font-size:12px">or</span>
         <input type="text" class="url-input" id="sc-url-input"
@@ -209,8 +218,47 @@ export function init(rootEl) {
 
       <!-- Preview -->
       <div class="preview-container" id="sc-preview-container">
-        <img class="preview-img" id="sc-preview-img" alt="Preview" />
-        <p class="preview-filename" id="sc-preview-filename"></p>
+        <p class="preview-filename" id="sc-preview-count"></p>
+        <ul class="frame-list" id="sc-preview-list" style="justify-content: center;"></ul>
+        
+        <!-- Edit Toolbar (Single File Only) -->
+        <div class="edit-toolbar" id="sc-edit-toolbar" hidden>
+          <button class="btn btn-secondary btn-sm" id="sc-rotate-left" title="Rotate Left">↺</button>
+          <button class="btn btn-secondary btn-sm" id="sc-rotate-right" title="Rotate Right">↻</button>
+          <button class="btn btn-secondary btn-sm" id="sc-flip-h" title="Flip Horizontal">⇔</button>
+          <button class="btn btn-secondary btn-sm" id="sc-flip-v" title="Flip Vertical">⇕</button>
+          <button class="btn btn-secondary btn-sm" id="sc-crop-btn" title="Crop">✂ Crop</button>
+          <button class="btn btn-secondary btn-sm" id="sc-reset-edit" title="Reset">↩ Reset</button>
+        </div>
+
+        <!-- Crop UI Container -->
+        <div id="sc-crop-container" class="crop-container" hidden>
+          <img id="sc-crop-img" class="crop-img" />
+          <div class="crop-overlay top"></div>
+          <div class="crop-overlay bottom"></div>
+          <div class="crop-overlay left"></div>
+          <div class="crop-overlay right"></div>
+          <div class="crop-selection" id="sc-crop-box"></div>
+          <div class="crop-actions">
+            <button class="btn btn-primary btn-sm" id="sc-crop-apply">Apply Crop</button>
+            <button class="btn btn-secondary btn-sm" id="sc-crop-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Before & After Comparison -->
+      <div class="comparison-container" id="sc-comparison" hidden>
+        <div class="comparison-panel">
+          <p class="comparison-label">Original</p>
+          <img class="comparison-img" id="sc-original-img" />
+          <p class="comparison-size" id="sc-original-size"></p>
+        </div>
+        <div class="comparison-divider">→</div>
+        <div class="comparison-panel">
+          <p class="comparison-label">Converted</p>
+          <img class="comparison-img" id="sc-converted-img" />
+          <p class="comparison-size" id="sc-converted-size"></p>
+        </div>
       </div>
 
       <hr class="divider" />
@@ -260,6 +308,7 @@ export function init(rootEl) {
           <span class="spinner" id="sc-convert-spinner"></span>
           Convert &amp; Download
         </button>
+        <span id="sc-batch-progress" style="color: #a0a0b0; font-size: 12px;" hidden></span>
       </div>
       <p class="error-msg" id="sc-convert-btn-error" hidden></p>
       ${!canvasAvailable ? `<p class="error-msg" id="sc-canvas-error">${ERR_CANVAS_UNAVAILABLE}</p>` : ''}
@@ -274,8 +323,8 @@ export function init(rootEl) {
   const urlBtn          = rootEl.querySelector('#sc-url-btn');
   const urlSpinner      = rootEl.querySelector('#sc-url-spinner');
   const previewContainer= rootEl.querySelector('#sc-preview-container');
-  const previewImg      = rootEl.querySelector('#sc-preview-img');
-  const previewFilename = rootEl.querySelector('#sc-preview-filename');
+  const previewCount    = rootEl.querySelector('#sc-preview-count');
+  const previewList     = rootEl.querySelector('#sc-preview-list');
   const formatSelector  = rootEl.querySelector('#sc-format-selector');
   const qualityRow      = rootEl.querySelector('#sc-quality-row');
   const qualitySlider   = rootEl.querySelector('#sc-quality-slider');
@@ -286,6 +335,34 @@ export function init(rootEl) {
   const customHeightInput=rootEl.querySelector('#sc-custom-height');
   const convertBtn      = rootEl.querySelector('#sc-convert-btn');
   const convertSpinner  = rootEl.querySelector('#sc-convert-spinner');
+  const batchProgress   = rootEl.querySelector('#sc-batch-progress');
+  
+  const comparisonCont  = rootEl.querySelector('#sc-comparison');
+  const origImg         = rootEl.querySelector('#sc-original-img');
+  const origSize        = rootEl.querySelector('#sc-original-size');
+  const convImg         = rootEl.querySelector('#sc-converted-img');
+  const convSize        = rootEl.querySelector('#sc-converted-size');
+
+  const editToolbar     = rootEl.querySelector('#sc-edit-toolbar');
+  const cropContainer   = rootEl.querySelector('#sc-crop-container');
+  const cropImg         = rootEl.querySelector('#sc-crop-img');
+  const cropBox         = rootEl.querySelector('#sc-crop-box');
+  const overlays        = {
+    top: rootEl.querySelector('.crop-overlay.top'),
+    bottom: rootEl.querySelector('.crop-overlay.bottom'),
+    left: rootEl.querySelector('.crop-overlay.left'),
+    right: rootEl.querySelector('.crop-overlay.right')
+  };
+
+  rootEl.querySelector('#sc-rotate-left').addEventListener('click', () => applyTransform('rotation', -90));
+  rootEl.querySelector('#sc-rotate-right').addEventListener('click', () => applyTransform('rotation', 90));
+  rootEl.querySelector('#sc-flip-h').addEventListener('click', () => applyTransform('flipH', true));
+  rootEl.querySelector('#sc-flip-v').addEventListener('click', () => applyTransform('flipV', true));
+  rootEl.querySelector('#sc-reset-edit').addEventListener('click', resetTransforms);
+  
+  rootEl.querySelector('#sc-crop-btn').addEventListener('click', startCrop);
+  rootEl.querySelector('#sc-crop-cancel').addEventListener('click', cancelCrop);
+  rootEl.querySelector('#sc-crop-apply').addEventListener('click', applyCropSelection);
 
   // ── Build format chips ────────────────────────────────────────────────────
   OUTPUT_FORMATS.forEach((fmt) => {
@@ -302,6 +379,7 @@ export function init(rootEl) {
   qualitySlider.addEventListener('input', () => {
     state.quality = parseInt(qualitySlider.value, 10);
     qualityValue.textContent = `${state.quality}%`;
+    triggerComparison();
   });
 
   // ── Drag and drop ─────────────────────────────────────────────────────────
@@ -347,16 +425,19 @@ export function init(rootEl) {
       customDims.classList.remove('visible');
       clearError('sc-custom-width');
       clearError('sc-custom-height');
+      triggerComparison();
     }
   });
 
   customWidthInput.addEventListener('input', () => {
     state.resolution.customWidth = customWidthInput.value;
     clearError('sc-custom-width');
+    triggerComparison();
   });
   customHeightInput.addEventListener('input', () => {
     state.resolution.customHeight = customHeightInput.value;
     clearError('sc-custom-height');
+    triggerComparison();
   });
 
   // ── Convert button ────────────────────────────────────────────────────────
@@ -365,14 +446,17 @@ export function init(rootEl) {
   // ── Internal handlers ─────────────────────────────────────────────────────
 
   function handleFiles(files) {
-    const file = files[0];
     clearError('sc-drop-zone');
-    const result = validateFile(file);
-    if (!result.valid) {
-      showError('sc-drop-zone', result.message);
-      return;
-    }
-    loadImageFile(file, file.name);
+    
+    // Process new files
+    Array.from(files).forEach((file) => {
+      const result = validateFile(file);
+      if (!result.valid) {
+        showError('sc-drop-zone', `${file.name}: ${result.message}`);
+        return;
+      }
+      loadImageFile(file, file.name);
+    });
   }
 
   function loadImageFile(file, displayName) {
@@ -380,17 +464,19 @@ export function init(rootEl) {
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        state.file         = file;
-        state.imageElement = img;
-        state.sourceStem   = extractStem(displayName);
-        onFileLoaded(file.type, displayName);
+        state.loadedImages.push({
+          file,
+          img,
+          stem: extractStem(displayName)
+        });
+        onImagesUpdated();
       };
       img.onerror = () => {
-        showError('sc-drop-zone', ERR_DECODE_ERROR);
+        showError('sc-drop-zone', `${displayName}: ${ERR_DECODE_ERROR}`);
       };
       img.src = e.target.result;
     };
-    reader.onerror = () => showError('sc-drop-zone', ERR_DECODE_ERROR);
+    reader.onerror = () => showError('sc-drop-zone', `${displayName}: ${ERR_DECODE_ERROR}`);
     reader.readAsDataURL(file);
   }
 
@@ -398,48 +484,74 @@ export function init(rootEl) {
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
-      // Create a synthetic File-like object so the rest of the pipeline is identical
-      const syntheticFile = new File([blob], stem + '.' + (blob.type.split('/')[1] || 'jpg'), { type: blob.type });
-      state.file         = syntheticFile;
-      state.imageElement = img;
-      state.sourceStem   = stem;
-      URL.revokeObjectURL(url);
-      onFileLoaded(blob.type, stem);
+      state.loadedImages.push({
+        file: blob,
+        img,
+        stem
+      });
+      onImagesUpdated();
+      // clean up blob url
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     img.onerror = () => {
+      showError('sc-url-input', ERR_DECODE_ERROR);
       URL.revokeObjectURL(url);
-      showError('sc-drop-zone', ERR_DECODE_ERROR);
     };
     img.src = url;
   }
 
-  function onFileLoaded(mimeType, displayName) {
-    // Show preview
-    renderPreview(state.imageElement, displayName);
-
-    // Enable chips and set defaults (Req 3.4, 3.5, 3.6)
-    const loadedFormat = MIME_TO_FORMAT[mimeType] || null;
+  function onImagesUpdated() {
+    if (state.loadedImages.length === 0) return;
+    
+    // Just use the first image for format logic
+    const firstType = state.loadedImages[0].file.type || 'image/jpeg';
+    const loadedFormat = MIME_TO_FORMAT[firstType] || 'jpg';
+    
+    renderPreview();
     enableChips(loadedFormat);
-
-    // Default resolution to Original (Req 4.7)
-    resolutionSelect.value = 'original';
-    state.resolution.preset = 'original';
-    customDims.classList.remove('visible');
-
-    // Clear all previous errors
-    clearError('sc-drop-zone');
-    clearError('sc-format-selector');
-    clearError('sc-convert-btn');
-    clearError('sc-custom-width');
-    clearError('sc-custom-height');
+    triggerComparison();
   }
 
-  function renderPreview(img, displayName) {
-    const { w, h } = computePreviewDimensions(img.naturalWidth || img.width, img.naturalHeight || img.height);
-    previewImg.src = img.src;
-    previewImg.style.maxWidth  = `${w}px`;
-    previewImg.style.maxHeight = `${h}px`;
-    previewFilename.textContent = displayName;
+  function renderPreview() {
+    previewList.innerHTML = '';
+    
+    if (state.loadedImages.length === 0) {
+      previewContainer.classList.remove('visible');
+      editToolbar.setAttribute('hidden', '');
+      return;
+    }
+
+    if (state.loadedImages.length === 1) {
+      editToolbar.removeAttribute('hidden');
+    } else {
+      editToolbar.setAttribute('hidden', '');
+    }
+
+    state.loadedImages.forEach((item, index) => {
+      const li = document.createElement('li');
+      li.className = 'frame-item';
+      const img = document.createElement('img');
+      img.className = 'frame-thumb';
+      img.src = item.img.src;
+      img.alt = item.stem;
+      
+      // Apply transforms visually to thumbnail if it's a single file
+      if (state.loadedImages.length === 1) {
+        const { rotation, flipH, flipV } = state.transforms;
+        const scaleX = flipH ? -1 : 1;
+        const scaleY = flipV ? -1 : 1;
+        img.style.transform = `rotate(${rotation}deg) scaleX(${scaleX}) scaleY(${scaleY})`;
+      }
+      
+      const title = document.createElement('span');
+      title.className = 'frame-index';
+      title.textContent = item.stem.length > 8 ? item.stem.substring(0, 6) + '...' : item.stem;
+      li.appendChild(img);
+      li.appendChild(title);
+      previewList.appendChild(li);
+    });
+
+    previewCount.textContent = `${state.loadedImages.length} image${state.loadedImages.length > 1 ? 's' : ''} loaded`;
     previewContainer.classList.add('visible');
   }
 
@@ -472,6 +584,8 @@ export function init(rootEl) {
     } else {
       qualityRow.setAttribute('hidden', '');
     }
+    
+    triggerComparison();
   }
 
   async function handleUrlLoad() {
@@ -517,12 +631,69 @@ export function init(rootEl) {
     }
   }
 
+  // ── Comparison logic ──────────────────────────────────────────────────────
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  function triggerComparison() {
+    if (state.debounceTimer) clearTimeout(state.debounceTimer);
+    
+    // Only show comparison for single file
+    if (state.loadedImages.length !== 1 || !state.selectedFormat) {
+      comparisonCont.setAttribute('hidden', '');
+      return;
+    }
+
+    state.debounceTimer = setTimeout(updateComparison, 300);
+  }
+
+  async function updateComparison() {
+    const item = state.loadedImages[0];
+    const originalBytes = item.file.size || 0;
+    
+    if (state.previewUrl) {
+      URL.revokeObjectURL(state.previewUrl);
+      state.previewUrl = null;
+    }
+
+    try {
+      const blob = await convertImage(item.img, state.selectedFormat, state.resolution);
+      state.previewUrl = URL.createObjectURL(blob);
+      
+      origImg.src = item.img.src;
+      convImg.src = state.previewUrl;
+
+      origSize.textContent = originalBytes ? formatBytes(originalBytes) : 'Unknown';
+      convSize.textContent = formatBytes(blob.size);
+
+      if (originalBytes && blob.size !== originalBytes) {
+        const diff = originalBytes - blob.size;
+        const pct = Math.abs((diff / originalBytes) * 100).toFixed(0);
+        if (diff > 0) {
+          convSize.textContent += ` (↓ ${pct}%)`;
+          convSize.style.color = '#4ade80';
+        } else {
+          convSize.textContent += ` (↑ ${pct}%)`;
+          convSize.style.color = '#f87171';
+        }
+      } else {
+        convSize.style.color = '';
+      }
+
+      comparisonCont.removeAttribute('hidden');
+    } catch (err) {
+      comparisonCont.setAttribute('hidden', '');
+    }
+  }
+
   async function handleConvert() {
-    clearError('sc-convert-btn');
-
-    if (!canvasAvailable) return;
-
-    if (!state.file || !state.imageElement) {
+    if (state.loadedImages.length === 0) {
       showError('sc-convert-btn', ERR_NO_FILE);
       return;
     }
@@ -547,52 +718,108 @@ export function init(rootEl) {
       }
     }
 
+    clearError('sc-convert-btn');
     convertBtn.disabled = true;
     convertSpinner.classList.add('visible');
+    
+    if (state.loadedImages.length > 1) {
+      batchProgress.removeAttribute('hidden');
+      batchProgress.textContent = `Processing 0 of ${state.loadedImages.length}...`;
+    }
 
     try {
-      const blob = await convertImage(
-        state.imageElement,
-        state.selectedFormat,
-        state.resolution
-      );
-      const filename = `${state.sourceStem}.${state.selectedFormat}`;
-      downloadBlob(blob, filename);
-    } catch {
+      const isBatch = state.loadedImages.length > 1;
+      const convertedFiles = [];
+
+      for (let i = 0; i < state.loadedImages.length; i++) {
+        const item = state.loadedImages[i];
+        if (isBatch) batchProgress.textContent = `Processing ${i+1} of ${state.loadedImages.length}...`;
+        
+        // 1. Generate PNG blob for baseline
+        const baseBlob = await convertImage(item.img, 'png', state.resolution);
+        let finalBlob = baseBlob;
+        
+        // 2. Build custom binary if needed
+        if (state.selectedFormat === 'ico') {
+          finalBlob = await generateIco(baseBlob);
+        } else if (state.selectedFormat === 'pdf') {
+          // If PDF, we use a JPG payload to save space since uncompressed PDF text is large
+          const jpgBlob = await convertImage(item.img, 'jpg', state.resolution);
+          const outW = parseInt(state.resolution.customWidth || item.img.width, 10);
+          const outH = parseInt(state.resolution.customHeight || item.img.height, 10);
+          finalBlob = await generatePdf(jpgBlob, outW, outH);
+        } else if (state.selectedFormat !== 'png') {
+          // Normal formats handled by toBlob natively
+          finalBlob = await convertImage(item.img, state.selectedFormat, state.resolution);
+        }
+
+        convertedFiles.push({
+          name: `${item.stem}.${state.selectedFormat}`,
+          blob: finalBlob
+        });
+      }
+
+      if (isBatch) {
+        batchProgress.textContent = 'Zipping...';
+        const zip = new ZipBuilder();
+        for (const file of convertedFiles) {
+          const arrayBuffer = await file.blob.arrayBuffer();
+          zip.addFile(file.name, new Uint8Array(arrayBuffer));
+        }
+        const zipBlob = zip.generate();
+        downloadBlob(zipBlob, `converted_images.zip`);
+      } else {
+        downloadBlob(convertedFiles[0].blob, convertedFiles[0].name);
+      }
+    } catch (err) {
+      console.error(err);
       showError('sc-convert-btn', ERR_PROCESSING);
     } finally {
       convertBtn.disabled = false;
       convertSpinner.classList.remove('visible');
+      batchProgress.setAttribute('hidden', '');
     }
   }
 
   function convertImage(img, format, resolution) {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
-      let outW, outH;
+      
+      const { rotation, flipH, flipV, crop } = state.transforms;
+      const isRotated = rotation === 90 || rotation === 270 || rotation === -90 || rotation === -270;
+      
+      let srcX = 0, srcY = 0, srcW = img.naturalWidth || img.width, srcH = img.naturalHeight || img.height;
+      if (crop) {
+        srcX = srcW * crop.x;
+        srcY = srcH * crop.y;
+        srcW = srcW * crop.w;
+        srcH = srcH * crop.h;
+      }
+      
+      let baseW = isRotated ? srcH : srcW;
+      let baseH = isRotated ? srcW : srcH;
 
-      const preset = STANDARD_PRESETS[resolution.preset];
-      if (preset) {
-        outW = preset.width;
-        outH = preset.height;
-      } else if (resolution.preset === 'custom') {
-        outW = Number(resolution.customWidth);
-        outH = Number(resolution.customHeight);
-      } else {
-        // 'original'
-        outW = img.naturalWidth  || img.width;
-        outH = img.naturalHeight || img.height;
+      let outW = baseW;
+      let outH = baseH;
+
+      const preset = resolution.preset;
+      if (preset === 'custom') {
+        outW = parseInt(resolution.customWidth, 10);
+        outH = parseInt(resolution.customHeight, 10);
+      } else if (preset && preset !== 'original') {
+        outW = STANDARD_PRESETS[preset].width;
+        outH = STANDARD_PRESETS[preset].height;
       }
 
       canvas.width  = outW;
       canvas.height = outH;
       const ctx = canvas.getContext('2d');
 
-      // For named presets: letterbox/fit-cover by scaling to fill the box
-      if (preset) {
-        const srcAR = (img.naturalWidth || img.width) / (img.naturalHeight || img.height);
+      // Setup letterboxing for presets
+      let drawW = outW, drawH = outH, drawX = 0, drawY = 0;
+      if (preset && preset !== 'original' && preset !== 'custom') {
+        const srcAR = baseW / baseH;
         const dstAR = outW / outH;
-        let drawW, drawH, drawX, drawY;
         if (srcAR > dstAR) {
           drawH = outH; drawW = outH * srcAR;
         } else {
@@ -602,10 +829,17 @@ export function init(rootEl) {
         drawY = (outH - drawH) / 2;
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, outW, outH);
-        ctx.drawImage(img, drawX, drawY, drawW, drawH);
-      } else {
-        ctx.drawImage(img, 0, 0, outW, outH);
       }
+
+      ctx.translate(drawX + drawW / 2, drawY + drawH / 2);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+      
+      // Draw considering rotation swap
+      const sDrawW = isRotated ? drawH : drawW;
+      const sDrawH = isRotated ? drawW : drawH;
+      
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, -sDrawW / 2, -sDrawH / 2, sDrawW, sDrawH);
 
       const mimeType = FORMAT_MIME[format];
       const isLossy  = ['jpg', 'webp', 'avif'].includes(format);
@@ -619,5 +853,86 @@ export function init(rootEl) {
         quality
       );
     });
+  }
+
+  // ── Binary Builders (ICO & PDF) ─────────────────────────────────────────
+
+  async function generateIco(pngBlob) {
+    const pngBuffer = await pngBlob.arrayBuffer();
+    const pngBytes = new Uint8Array(pngBuffer);
+    
+    // Minimal ICO header: 6 bytes header + 16 bytes directory
+    const icoSize = 6 + 16 + pngBytes.length;
+    const buffer = new ArrayBuffer(icoSize);
+    const view = new DataView(buffer);
+    const array = new Uint8Array(buffer);
+
+    // ICONDIR
+    view.setUint16(0, 0, true); // reserved
+    view.setUint16(2, 1, true); // image type (1 = icon)
+    view.setUint16(4, 1, true); // num images
+
+    // ICONDIRENTRY
+    let width = 0; // 0 means 256
+    let height = 0;
+    view.setUint8(6, width);
+    view.setUint8(7, height);
+    view.setUint8(8, 0); // color count
+    view.setUint8(9, 0); // reserved
+    view.setUint16(10, 1, true); // planes
+    view.setUint16(12, 32, true); // bpp
+    view.setUint32(14, pngBytes.length, true); // size in bytes
+    view.setUint32(18, 22, true); // offset to image data
+
+    array.set(pngBytes, 22);
+
+    return new Blob([buffer], { type: 'image/x-icon' });
+  }
+
+  async function generatePdf(jpgBlob, width, height) {
+    const jpgBuffer = await jpgBlob.arrayBuffer();
+    const jpgBytes = new Uint8Array(jpgBuffer);
+    
+    const wPt = width;
+    const hPt = height;
+    
+    const parts = [];
+    parts.push("%PDF-1.4\n%âãÏÓ\n");
+    
+    const objOffsets = [];
+    
+    function addObj(content) {
+      const offset = parts.map(p => typeof p === 'string' ? p.length : p.byteLength).reduce((a,b)=>a+b, 0);
+      objOffsets.push(offset);
+      const objNum = objOffsets.length;
+      parts.push(`${objNum} 0 obj\n${content}\nendobj\n`);
+      return objNum;
+    }
+
+    addObj("<< /Type /Catalog /Pages 2 0 R >>");
+    addObj("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+    addObj(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${wPt} ${hPt}] /Contents 4 0 R /Resources << /XObject << /Im1 5 0 R >> >> >>`);
+    
+    const contentStream = `q ${wPt} 0 0 ${hPt} 0 0 cm /Im1 Do Q`;
+    addObj(`<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`);
+    
+    const imgDict = `<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpgBytes.length} >>`;
+    const obj5Offset = parts.map(p => typeof p === 'string' ? p.length : p.byteLength).reduce((a,b)=>a+b, 0);
+    objOffsets.push(obj5Offset);
+    const obj5Num = objOffsets.length;
+    parts.push(`${obj5Num} 0 obj\n${imgDict}\nstream\n`);
+    parts.push(jpgBytes);
+    parts.push("\nendstream\nendobj\n");
+    
+    const xrefOffset = parts.map(p => typeof p === 'string' ? p.length : p.byteLength).reduce((a,b)=>a+b, 0);
+    let xref = "xref\n0 " + (objOffsets.length + 1) + "\n0000000000 65535 f \n";
+    for (const off of objOffsets) {
+      xref += off.toString().padStart(10, '0') + " 00000 n \n";
+    }
+    parts.push(xref);
+    
+    parts.push(`trailer\n<< /Size ${objOffsets.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+    
+    return new Blob(parts, { type: 'application/pdf' });
   }
 }

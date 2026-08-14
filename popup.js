@@ -10,6 +10,12 @@
 import { init as initStandardConverter } from './standard-converter.js';
 import { init as initGifCreator } from './gif-creator.js';
 
+// Initialize Theme
+const currentTheme = localStorage.getItem('theme') || 'dark';
+if (currentTheme === 'light') {
+  document.body.classList.add('light-theme');
+}
+
 /**
  * Activates the specified tab by:
  *  - Toggling aria-selected and the `active` CSS class on the two tab buttons
@@ -98,5 +104,21 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       activateTab(btn.dataset.tab);
     });
+  });
+
+  // Theme Toggle Logic
+  const themeToggle = document.getElementById('theme-toggle');
+  
+  function updateThemeIcon() {
+    const isLight = document.body.classList.contains('light-theme');
+    themeToggle.textContent = isLight ? '☀️' : '🌙';
+  }
+  updateThemeIcon();
+
+  themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('light-theme');
+    const isLight = document.body.classList.contains('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    updateThemeIcon();
   });
 });

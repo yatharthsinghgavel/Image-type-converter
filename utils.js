@@ -170,6 +170,8 @@ export const ERR_DECODE_ERROR = 'The file could not be read or decoded.';
 // Standard Converter — conversion pre-flight errors
 export const ERR_NO_FILE = 'Please load a source image before converting.';
 
+export const OUTPUT_FORMATS = ['jpg', 'png', 'webp', 'bmp', 'avif', 'tiff', 'ico', 'pdf'];
+
 export const ERR_NO_FORMAT = 'Please select an output format.';
 
 // Standard Converter — custom resolution errors
