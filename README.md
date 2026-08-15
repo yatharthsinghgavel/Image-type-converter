@@ -4,6 +4,10 @@
   <img src="logo.svg" alt="PixelMorph Logo" width="96" />
 </p>
 
+<p align="center">
+  <img src="screenshots/dark-theme.png.png" alt="PixelMorph main UI — dark theme" width="500" />
+</p>
+
 A powerful, privacy-first Google Chrome extension that lets you convert image formats, edit pictures, and create animated GIFs entirely on your device. **Zero servers, zero uploads, 100% private.**
 
 ---
@@ -20,6 +24,42 @@ A powerful, privacy-first Google Chrome extension that lets you convert image fo
 - **🌓 Light & Dark Themes:** Global theme toggle that saves your preference.
 - **🔒 100% Client-Side:** All processing happens securely in your browser using HTML5 Canvas and Web Workers. No data ever leaves your machine.
 
+---
+
+### 🌓 Light & Dark Themes
+
+<p align="center">
+  <img src="screenshots/dark-theme.png.png" alt="Dark theme" width="45%" />
+  &nbsp;&nbsp;
+  <img src="screenshots/light-theme.png.png" alt="Light theme" width="45%" />
+</p>
+
+---
+
+### 🎨 Image Editor & Before/After Comparison
+
+<p align="center">
+  <img src="screenshots/editor-comparison.png.png" alt="Image editor with rotate, flip, crop controls and before/after file size comparison" width="500" />
+</p>
+
+---
+
+### 📦 Batch Conversion
+
+<p align="center">
+  <img src="screenshots/batch.png.png" alt="Batch conversion with multiple images loaded and output format selector" width="500" />
+</p>
+
+---
+
+### 🎬 Advanced GIF Creator
+
+<p align="center">
+  <img src="screenshots/gif-creator.png.png" alt="Advanced GIF Creator tab with frame loaded, duration, resolution, and frame rate settings" width="500" />
+</p>
+
+---
+
 ## 🛠️ Installation
 
 Since this extension processes everything locally, you can easily install it as an "Unpacked Extension" in Chrome:
@@ -33,6 +73,12 @@ Since this extension processes everything locally, you can easily install it as 
 4. Click the **"Load unpacked"** button in the top left.
 5. Select the downloaded `Image-type-converter` folder.
 6. The extension is now installed! Pin it to your toolbar for easy access.
+
+<p align="center">
+  <img src="screenshots/download.png.png" alt="PixelMorph loaded in the Chrome extensions page" width="400" />
+</p>
+
+---
 
 ## 🧪 Testing
 
