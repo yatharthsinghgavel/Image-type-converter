@@ -52,6 +52,12 @@ A powerful, privacy-first Google Chrome extension that lets you convert image fo
 
 ---
 
+### 🖱️ Right-Click Context Menu
+
+No need to open the extension manually. Right-click any image or video on any webpage and select **"Convert Image"** or **"Extract to GIF"** to load it directly into PixelMorph — one click and you're ready to convert.
+
+---
+
 ### 🎬 Advanced GIF Creator
 
 <p align="center">
