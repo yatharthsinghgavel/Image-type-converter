@@ -60,6 +60,18 @@ A powerful, privacy-first Google Chrome extension that lets you convert image fo
 
 ---
 
+## 🎥 Video Tutorial
+
+> *Tutorial by a community member — not affiliated with this project.*
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=NH5CPm9pyts" target="_blank">
+    <img src="https://img.youtube.com/vi/NH5CPm9pyts/maxresdefault.jpg" alt="Watch the tutorial on YouTube" width="560" />
+  </a>
+</p>
+
+---
+
 ## 🛠️ Installation
 
 Since this extension processes everything locally, you can easily install it as an "Unpacked Extension" in Chrome:
