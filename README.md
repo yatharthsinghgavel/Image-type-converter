@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="screenshots/dark-theme.png.png" alt="PixelMorph main UI — dark theme" width="500" />
+  <img src="dark-theme.png.png" alt="PixelMorph main UI — dark theme" width="500" />
 </p>
 
 A powerful, privacy-first Google Chrome extension that lets you convert image formats, edit pictures, and create animated GIFs entirely on your device. **Zero servers, zero uploads, 100% private.**
@@ -29,9 +29,9 @@ A powerful, privacy-first Google Chrome extension that lets you convert image fo
 ### 🌓 Light & Dark Themes
 
 <p align="center">
-  <img src="screenshots/dark-theme.png.png" alt="Dark theme" width="45%" />
+  <img src="dark-theme.png.png" alt="Dark theme" width="45%" />
   &nbsp;&nbsp;
-  <img src="screenshots/light-theme.png.png" alt="Light theme" width="45%" />
+  <img src="light-theme.png.png" alt="Light theme" width="45%" />
 </p>
 
 ---
@@ -39,7 +39,7 @@ A powerful, privacy-first Google Chrome extension that lets you convert image fo
 ### 🎨 Image Editor & Before/After Comparison
 
 <p align="center">
-  <img src="screenshots/editor-comparison.png.png" alt="Image editor with rotate, flip, crop controls and before/after file size comparison" width="500" />
+  <img src="editor-comparison.png.png" alt="Image editor with rotate, flip, crop controls and before/after file size comparison" width="500" />
 </p>
 
 ---
@@ -47,7 +47,7 @@ A powerful, privacy-first Google Chrome extension that lets you convert image fo
 ### 📦 Batch Conversion
 
 <p align="center">
-  <img src="screenshots/batch.png.png" alt="Batch conversion with multiple images loaded and output format selector" width="500" />
+  <img src="batch.png.png" alt="Batch conversion with multiple images loaded and output format selector" width="500" />
 </p>
 
 ---
@@ -55,7 +55,7 @@ A powerful, privacy-first Google Chrome extension that lets you convert image fo
 ### 🎬 Advanced GIF Creator
 
 <p align="center">
-  <img src="screenshots/gif-creator.png.png" alt="Advanced GIF Creator tab with frame loaded, duration, resolution, and frame rate settings" width="500" />
+  <img src="gif-creator.png.png" alt="Advanced GIF Creator tab with frame loaded, duration, resolution, and frame rate settings" width="500" />
 </p>
 
 ---
@@ -75,7 +75,7 @@ Since this extension processes everything locally, you can easily install it as 
 6. The extension is now installed! Pin it to your toolbar for easy access.
 
 <p align="center">
-  <img src="screenshots/download.png.png" alt="PixelMorph loaded in the Chrome extensions page" width="400" />
+  <img src="download.png.png" alt="PixelMorph loaded in the Chrome extensions page" width="400" />
 </p>
 
 ---
